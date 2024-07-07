@@ -1,0 +1,19 @@
+[submodule "external/engine/external/SDL"]
+	path = external/engine/external/SDL
+	url = https://github.com/libsdl-org/SDL.git
+	branch = release-2.30.x
+[submodule "external/engine/external/SDL_image"]
+	path = external/engine/external/SDL_image
+	url = https://github.com/libsdl-org/SDL_image.git
+	branch = release-2.8.x
+[submodule "external/engine/external/SDL_mixer"]
+	path = external/engine/external/SDL_mixer
+	url = https://github.com/libsdl-org/SDL_mixer.git
+	branch = release-2.8.x
+[submodule "external/engine/external/SDL_ttf"]
+	path = external/engine/external/SDL_ttf
+	url = https://github.com/libsdl-org/SDL_ttf.git
+	branch = release-2.22.x
+[submodule "external/engine/external/box2D"]
+	path = external/engine/external/box2D
+	url = https://github.com/erincatto/box2d.git
