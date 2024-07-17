@@ -1,6 +1,7 @@
 #include "ECS.h"
 #include "Engine.h"
 
+#pragma region GRAPHICS
 void System::Visual::Update(Registry& reg)
 {
     for (std::size_t e = 1; e <= Engine::Get()->GetMaxEntity(); e++)
@@ -170,6 +171,9 @@ const int& ClipNumber, const int& ClipHeight, const int& ClipWidth, const int& C
 		printf("[LoadSpriteSheetFromFile() :   Texture does not exist!]");
 }
 
+#pragma endregion GRAPHICS
+
+#pragma region PLAYER
 void System::Player::Update(const std::size_t& ID, Registry& reg)
 {
 	
@@ -234,6 +238,9 @@ void System::Player::Update(const std::size_t& ID, Registry& reg)
     reg.regPhysics[ID].body->GetWorldCenter(), 0);
 }
 
+#pragma endregion PLAYER
+
+#pragma region STAGE
 void System::Stage::LoadNext(const std::size_t& PlayerID, const std::size_t& AnchorID)
 {
 	Unload(Screens[CurrentStage]);
@@ -262,6 +269,8 @@ void System::Stage::Unload(const Screen& screen)
 		Engine::Get()->DestroySolid(screen.StaticGeometryIDs[i]);
 	}
 }
+
+#pragma endregion STAGE
 
 #pragma region PHYSICS
 System::Physics::Physics(const float& timestepFixed, const float& gravity)

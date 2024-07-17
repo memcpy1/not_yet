@@ -9,7 +9,7 @@ add_subdirectory(external/SDL)
 add_subdirectory(external/SDL_image)
 add_subdirectory(external/SDL_mixer)
 add_subdirectory(external/SDL_ttf)
-#add_subdirectory(external/Box2D)
+add_subdirectory(external/box2D)
 
 add_library(${PROJECT_NAME} STATIC
         source/engine.cpp       header/Engine.h
@@ -24,9 +24,9 @@ add_library(${PROJECT_NAME} STATIC
 )
 target_include_directories( ${PROJECT_NAME} 
     PUBLIC
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    PRIVATE
+        $<INSTALL_INTERFACE:header>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/header>
+    PUBLIC
         external/SDL/include
         external/SDL_image/include
         external/SDL_mixer/include
@@ -36,9 +36,9 @@ target_include_directories( ${PROJECT_NAME}
 
 target_link_libraries( ${PROJECT_NAME}
     PUBLIC
-#        SDL2::SDL2
-#        SDL2_image::SDL2_image
-#        SDL2_mixer::SDL2_mixer
-#        SDL2_ttf::SDL2_ttf
-#        box2d
+        SDL2::SDL2
+        SDL2_image::SDL2_image
+        SDL2_mixer::SDL2_mixer
+        SDL2_ttf::SDL2_ttf
+        box2d
 )
