@@ -1,6 +1,8 @@
 #include "ECS.h"
 #include "Engine.h"
 
+#include <fstream>
+
 #pragma region GRAPHICS
 void System::Visual::Update(Registry& reg)
 {
@@ -161,10 +163,6 @@ const int& ClipNumber, const int& ClipHeight, const int& ClipWidth, const int& C
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w = ClipWidth;
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h = ClipHeight;
 			}
-
-			std::cout << "Clip Extracted" << std::endl;
-			std::cout << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].x << " " 
-			<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].y << std::endl;
 		}
 	}
 	else 
@@ -209,10 +207,16 @@ void System::Player::Update(const std::size_t& ID, Registry& reg)
     {   
         if (reg.regPlayer[ID].GroundContacts < 1)
         {
-            if (reg.regPlayer[ID].DoubleJump != 0 && reg.regPlayer[ID].JumpTime.GetTicks() > 300)
+            if (reg.regPlayer[ID].DoubleJump > 0 && reg.regPlayer[ID].JumpTime.GetTicks() > 300)
             {
-                reg.regPhysics[ID].body->ApplyLinearImpulse(b2Vec2(0, 0.001f * reg.regPlayer[ID].JumpTime.GetTicks()), 
-                reg.regPhysics[ID].body->GetWorldCenter(), 0);
+                if(reg.regPhysics[ID].body->GetLinearVelocity().y < 0)
+				{
+					reg.regPhysics[ID].body->ApplyLinearImpulse(b2Vec2(0.1f * reg.regPlayer[ID].MoveState, 0.19f + abs(reg.regPhysics[ID].body->GetLinearVelocity().y) * 0.09f), 
+                	reg.regPhysics[ID].body->GetWorldCenter(), 0);
+				}
+				else
+				reg.regPhysics[ID].body->ApplyLinearImpulse(b2Vec2(0.1f * reg.regPlayer[ID].MoveState, 0.12f), 
+				reg.regPhysics[ID].body->GetWorldCenter(), 0);
         
                 reg.regPlayer[ID].DoubleJump--;
                 reg.regPlayer[ID].JumpTime.Start();
@@ -220,16 +224,12 @@ void System::Player::Update(const std::size_t& ID, Registry& reg)
             else
                 return;
         }
-
         else
         {
-			std::cout << "Jump" << std::endl;
-            reg.regPlayer[ID].DoubleJump = 1;
             reg.regPlayer[ID].JumpTime.Start();
-            reg.regPhysics[ID].body->ApplyLinearImpulse(b2Vec2(0, 0.28f), reg.regPhysics[ID].body->GetWorldCenter(), 0);
+            reg.regPhysics[ID].body->ApplyLinearImpulse(b2Vec2(0, 0.10f), reg.regPhysics[ID].body->GetWorldCenter(), 0);
         }      
     }
-
 
     b2Vec2 Vel = reg.regPhysics[ID].body->GetLinearVelocity();
     float VelChangeX = reg.regPlayer[ID].MoveState * 0.5f - Vel.x;
@@ -241,33 +241,120 @@ void System::Player::Update(const std::size_t& ID, Registry& reg)
 #pragma endregion PLAYER
 
 #pragma region STAGE
-void System::Stage::LoadNext(const std::size_t& PlayerID, const std::size_t& AnchorID)
+
+void System::Load::LoadStage(const std::string& filepath)
 {
-	Unload(Screens[CurrentStage]);
-	Load(Screens[CurrentStage++], PlayerID, AnchorID);
+    std::fstream Stage;
+    Stage.open(filepath, std::ios::in | std::ios::binary);
+	
+	if(Stage.fail())
+		std::cout << "[!] File not found!" << '\n';
+    
+	unsigned int nScreens = 0; //doesnt read the second file :(
+	Stage.read((char*)&nScreens, sizeof(unsigned int));
+    Screen* ImportedScreens = new Screen[nScreens];
+    
+	for (unsigned int i = 0; i < nScreens; i++)
+    {
+        Stage.read((char*)&ImportedScreens[i].StartPosition.x, sizeof(float));
+        Stage.read((char*)&ImportedScreens[i].StartPosition.y, sizeof(float));  
+        
+		Stage.read((char*)&ImportedScreens[i].nPlatforms, sizeof(unsigned int));
+        ImportedScreens[i].Platforms = new Box2DPlatform[ImportedScreens[i].nPlatforms];
+        
+        for (unsigned int j = 0; j < ImportedScreens[i].nPlatforms; j++)
+        {
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].nVerteces, sizeof(unsigned int));
+            ImportedScreens[i].Platforms[j].Verteces = new Vector2D[ImportedScreens[i].Platforms[j].nVerteces];
+            
+			for (unsigned int l = 0; l < ImportedScreens[i].Platforms[j].nVerteces; l++)
+            {
+                Stage.read((char*)&ImportedScreens[i].Platforms[j].Verteces[l].x, sizeof(float));
+                Stage.read((char*)&ImportedScreens[i].Platforms[j].Verteces[l].y, sizeof(float));
+            }
+                
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].Type, sizeof(unsigned int));
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].Mat, sizeof(unsigned int));
+        }
+    }
+
+    Stage.close();
+
+	CurrentStage.nScreens = nScreens;
+	CurrentStage.Screens = ImportedScreens;
+	std::cout << CurrentStage.nScreens << '\n';
+	CurrentScreen = 0;
+	LoadScreen(CurrentStage.Screens[CurrentScreen]);
 }
 
-void System::Stage::Load(Screen& screen, const std::size_t& PlayerID, const std::size_t& AnchorID)
+void System::Load::LoadScreen(const Screen& screen)
 {
-	std::vector<std::size_t> IDs;
-
-	for (int i = 0; i < screen.StaticGeometry.size(); i++)
+	for (unsigned int i = 0; i < screen.nPlatforms; i++)
 	{
-		IDs.push_back(Engine::Get()->RegisterSolid(screen.StaticGeometry[i].Position, screen.StaticGeometry[i].Dimensions));
+		PlatformIDs.push_back(Engine::Get()->RegisterSolid(screen.Platforms[i]));
 	}
-
-	screen.StaticGeometryIDs = IDs;
-
-	Engine::Get()->GetRegistry()->regPhysics[PlayerID].body->SetTransform(screen.PlayerPosition, 0);
-	Engine::Get()->GetRegistry()->regPhysics[AnchorID].body->SetTransform(screen.AnchorPosition, 0);
+	
+	if(CurrentScreen <= 0)
+		Teleport(PlayerID, Engine::Get()->GetRegistry(), screen.StartPosition);
 }
 
-void System::Stage::Unload(const Screen& screen)
+void System::Load::UnloadScreen(const Screen& screen)
 {
-	for (int i = 0; i < screen.StaticGeometry.size(); i++)
+	for (int i = 0; i < PlatformIDs.size(); i++)
 	{
-		Engine::Get()->DestroySolid(screen.StaticGeometryIDs[i]);
+		Engine::Get()->DestroySolid(PlatformIDs[i]);
 	}
+
+	PlatformIDs.clear();
+}
+
+void System::Load::Update(const std::size_t& ID, Registry& reg)
+{	
+	if (reg.regStage[ID].Restart)
+	{
+		std::cout << "dead" << '\n';
+	}
+		//Teleport(ID, &reg, {StartPos.x, StartPos.y});
+
+	else if (GoToNext)
+	{
+		if (CurrentScreen > 0)
+			UnloadScreen(CurrentStage.Screens[CurrentScreen - 1]);
+		else
+			UnloadScreen(CurrentStage.Screens[CurrentScreen]);
+		
+		if (CurrentScreen < CurrentStage.nScreens - 1)
+		{
+			CurrentScreen++;
+			LoadScreen(CurrentStage.Screens[CurrentScreen]);
+			StartPos = reg.regPhysics[ID].body->GetPosition();
+		}
+		else
+		{
+			Level++;
+        	std::string Filename = "Level_";
+        	Filename += std::to_string(Level);
+			std::cout << Filename << '\n';
+			LoadStage("../../res/lvl/" + Filename + ".bin");
+		}
+
+		GoToNext = false;
+	}
+}
+
+void System::Load::FlagNext()
+{
+	GoToNext = true;
+}
+
+void System::Load::Teleport(const std::size_t& ID, Registry* reg, const Vector2D& position)
+{
+	reg->regPhysics[ID].body->SetTransform({position.x, position.y}, 0);
+}
+
+void System::Load::SetPlayerID(const std::size_t &ID)
+{
+	PlayerID = ID;
 }
 
 #pragma endregion STAGE
@@ -309,16 +396,6 @@ void System::Physics::Update(const float& Dt)
 	{
 		World->Step(FixedTimestep, VelocityIterations, PositionIterations);
 	}
-}
-
-void System::Physics::Interpolate(Registry& reg, const double& alpha)
-{
-    
-}
-
-void Component::Physics::Actor::b2BodyToInterpolation(b2Body*& body)
-{
-    PreviousPosition = body->GetPosition();
 }
 
 #pragma endregion PHYSICS

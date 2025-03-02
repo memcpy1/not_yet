@@ -4,7 +4,7 @@
 
 int main()
 {
-    Engine::Get()->Initialize("game", 1280, 720, 1);
+    Engine::Get()->Initialize("not_yet", 1280, 720, 1);
     
     while (Engine::Get()->IsRunning())
     {

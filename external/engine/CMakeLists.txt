@@ -20,7 +20,7 @@ add_library(${PROJECT_NAME} STATIC
         source/event.cpp        header/Event.h
         source/collision.cpp    header/Collision.h
 
-        source/vendor/SDL_Primitives/SDL_Prims.cpp  header/vendor/SDL_Primitives/SDL_prims.h
+        source/vendor/SDL_Primitives/SDL_prims.cpp  header/vendor/SDL_Primitives/SDL_prims.h
 )
 target_include_directories( ${PROJECT_NAME} 
     PUBLIC

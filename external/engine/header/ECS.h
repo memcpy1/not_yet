@@ -23,13 +23,6 @@ enum PlayerMoveX
     MOVE_RIGHT = 1
 };
 
-enum Material
-{
-    Stone = 0,
-    Glass = 1,
-    Ice = 2
-};
-
 namespace Animation
 {
     const int8_t PLAYER_STILL[1] = {8};
@@ -43,19 +36,45 @@ struct Res
     TTF_Font* fontPlayFair;
 };
 
-struct SolidAttrib
+struct Vector2D
 {
-    b2Vec2 Position;
-    b2Vec2 Dimensions;
+    float x;
+    float y;
+};
+
+enum Material
+{
+    MAIN = 0,
+    KILL = 1,
+    GLASS = 2,
+    CLOUD = 3
+};
+
+enum PlatformType
+{
+    STATIC = 0,
+    ANCHOR = 1
+};
+
+struct Box2DPlatform
+{
+    unsigned int nVerteces;
+    Vector2D* Verteces;
+    unsigned int Type;
+    unsigned int Mat;
 };
 
 struct Screen
 {
-    std::vector<SolidAttrib> StaticGeometry;
-    std::vector<std::size_t> StaticGeometryIDs;
-    
-    b2Vec2 PlayerPosition;
-    b2Vec2 AnchorPosition;
+    Vector2D StartPosition;
+    unsigned int nPlatforms;
+    Box2DPlatform* Platforms;
+};
+
+struct Stage
+{
+    unsigned int nScreens;
+    Screen* Screens;
 };
 
 struct Component
@@ -72,8 +91,6 @@ struct Component
         
         SDL_Rect* Frames;
         unsigned int FrameCount; //The amount of separate frames in the sprite sheet file.
-
-
         int Delay;
     };
 
@@ -83,6 +100,7 @@ struct Component
         Material MATERIAL_ID;
         bool GroundCheck;
         bool Fatal;
+        bool Anchor;
     };
 
     struct Physics
@@ -117,6 +135,11 @@ struct Component
 
         int* Animations = nullptr;
     };
+
+    struct Load
+    {
+        bool Restart;
+    };
 };
 
 struct Registry
@@ -127,6 +150,7 @@ struct Registry
     std::unordered_map<std::size_t, Component::Physics::Actor> regActor;
     std::unordered_map<std::size_t, Component::Physics::Solid> regSolid; 
     std::unordered_map<std::size_t, Component::Box2DUserData> regUser;
+    std::unordered_map<std::size_t, Component::Load> regStage;
 };
 struct System 
 {
@@ -206,19 +230,31 @@ struct System
         const float MaxFallSpeed = 0.1f;
         const float Gravity = 90.0f;
         const float DecelerationSpeed = 0.1f;
-
+    
         void Update(const std::size_t& ID, Registry& reg);
     };
 
-    struct Stage
+    struct Load
     {
     private:
-        unsigned int CurrentStage;
-        std::vector<Screen> Screens;
+        unsigned int CurrentScreen;
+        Stage CurrentStage;
+        Stage PreviousStage;
+        b2Vec2 StartPos;
+        bool GoToNext = 0;
+        unsigned int Level = 1;
+        std::vector<std::size_t> PlatformIDs;
+        std::size_t PlayerID;
     public:
-        void LoadNext(const std::size_t& PlayerID, const std::size_t& AnchorID);
-        void Load(Screen& screen, const std::size_t& PlayerID, const std::size_t& AnchorID);
-        void Unload(const Screen& screen);
+        void LoadStage(const std::string& filepath);
+        void LoadScreen(const Screen& screen);
+        void UnloadScreen(const Screen& screen);
+        void LoadNext();
+        void FlagNext();
+        void Print(const Screen& screen);
+        void Teleport(const std::size_t& ID, Registry* reg, const Vector2D& position);
+        void SetPlayerID(const std::size_t& ID);
+        void Update(const std::size_t& ID, Registry& reg);
     };
 };
 

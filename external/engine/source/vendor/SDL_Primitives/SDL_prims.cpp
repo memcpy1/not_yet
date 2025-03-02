@@ -91,30 +91,8 @@ void SDL_FillPolygon(SDL_Surface* s, SDL_Point *v, int n, const b2Color& c)
   SDL_SetRenderDrawColor(Engine::Get()->GetRenderer(), c.r * 255, c.g * 255, c.b * 255, c.a * 255);
 
   if (n == 1) SDL_RenderDrawPoint(Engine::Get()->GetRenderer(), v->x, v->y);
-  int nxs;
-  int* xs = (int*)alloca(sizeof(int) * n);
-  int y, i, j, k;
-  int y0= v[0].y, y1= y0;
+  int i;
   for (i= 1;  i < n;  ++i)
-    {
-      y= v[i].y;
-      if (y < y0) y0= y;
-      if (y > y1) y1= y;
-    }
-  if (y0 < CLIPY0(s)) y0= CLIPY0(s);
-  if (y1 >= CLIPY1(s)) y1= CLIPY1(s) - 1;
-  for (y= y0;  y <= y1;  ++y)
-    {
-      nxs= 0;
-      j= n - 1;
-      for (i= 0;  i < n;  j= i++)
-	if ((v[i].y < y && y <= v[j].y) || (v[j].y < y && y <= v[i].y))
-	  {
-	    xs[nxs++]= (int)rint(v[i].x + ((double)y - v[i].y) / ((double)v[j].y - v[i].y) * ((double)v[j].x - v[i].x));
-	    for (k= nxs - 1;  k && xs[k-1] > xs[k];  --k)
-	      swap(int, xs[k-1], xs[k]);
-	  }
-      for (i= 0;  i < nxs;  i += 2)
-	SDL_RenderDrawLine(Engine::Get()->GetRenderer(), xs[i], y, xs[i+1], y);
-    }
+    SDL_RenderDrawLine(Engine::Get()->GetRenderer(), v[i-1].x, v[i-1].y, v[i].x, v[i].y);
+  SDL_RenderDrawLine(Engine::Get()->GetRenderer(), v[n-1].x, v[n-1].y, v[0].x, v[0].y);
 }

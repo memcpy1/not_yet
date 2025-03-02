@@ -63,12 +63,11 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
     //Used for collision callbacks
     collisionListener = CollisionListener();
     PhysicsSystem.World->SetContactListener(&collisionListener);
-
-    RegisterSolid(b2Vec2(0, -4), b2Vec2(14.2f, 0.5f));
-    RegisterActor(b2Vec2(1.2f, 4), b2Vec2(0.5f, 0.5f), 0, 12, 1, 0.1f);
     
-    GraphicsSystem.LoadFromFile(1 , "../../res/img/Solid_red.png");
-    Player = RegisterPlayer(b2Vec2(0, 0), b2Vec2(0.45f, 0.65f), "../../res/img/player_anim.png");
+    Player = RegisterPlayer(b2Vec2(0, 0), b2Vec2(0.30f, 0.50f), "");
+
+    LevelLoader.SetPlayerID(Player);
+    LevelLoader.LoadStage("../../res/lvl/Level_1.bin");
 
     return true;
 }
@@ -110,10 +109,14 @@ void Engine::DestroyEntity()
     MaxEntities = Entities;
 }
 
-
 std::size_t Engine::GetMaxEntity()
 {
     return MaxEntities;
+}
+
+System::Load *Engine::GetLevelLoader()
+{
+    return &LevelLoader;
 }
 
 SDL_Surface* Engine::GetWindowSurface()
@@ -145,6 +148,7 @@ void Engine::Update()
     
     PlayerSystem.Update(Player, EngineRegistry);
     GraphicsSystem.Update(EngineRegistry);
+    LevelLoader.Update(Player, EngineRegistry);
     
 
     FrameCount++;
@@ -185,6 +189,50 @@ std::size_t Engine::RegisterSolid(const b2Vec2& position, const b2Vec2& dimensio
     fixtSolid.density = 0;
     fixtSolid.userData.pointer = reinterpret_cast<uintptr_t>(&EngineRegistry.regUser[Solid]);
 
+    b2Fixture* SolidFixture = bodySolid->CreateFixture(&fixtSolid);
+        
+    //Body enters the Registry
+    EngineRegistry.regPhysics[Solid].body = bodySolid;
+    
+    return Solid;
+}
+
+std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
+{
+    //Box2D Initialization
+    std::size_t Solid = CreateEntity();
+    EngineRegistry.regUser[Solid].ECS_ID = Solid;
+    EngineRegistry.regUser[Solid].Anchor = 0;
+
+    b2BodyDef defSolid;
+    defSolid.type = b2_staticBody;
+
+    b2Body* bodySolid = PhysicsSystem.World->CreateBody(&defSolid);
+
+    b2ChainShape shapeSolid;
+    b2Vec2* vec = new b2Vec2[platformData.nVerteces];
+    for (int i = 0; i < platformData.nVerteces; i++)
+        vec[i].Set(platformData.Verteces[i].x, platformData.Verteces[i].y);
+
+    shapeSolid.CreateLoop(vec, platformData.nVerteces);
+
+    b2FixtureDef fixtSolid;
+    fixtSolid.shape = &shapeSolid;
+    fixtSolid.density = 0;
+    
+    if (platformData.Type == PlatformType::ANCHOR)
+    {
+        fixtSolid.isSensor = true;
+        EngineRegistry.regUser[Solid].Anchor = 1;
+    }
+    else if (platformData.Mat == Material::KILL)
+    {
+        EngineRegistry.regUser[Solid].Fatal = 1;
+        std::cout << "Fatal" << std::endl;
+    }
+        
+    
+    fixtSolid.userData.pointer = reinterpret_cast<uintptr_t>(&EngineRegistry.regUser[Solid]);
     b2Fixture* SolidFixture = bodySolid->CreateFixture(&fixtSolid);
         
     //Body enters the Registry

@@ -144,7 +144,6 @@ void DebugDrawSDL::DrawPolygon(const b2Vec2* pVertices, int32 pVertexCount, cons
       vertices.push_back({(int)(Box2DtoSDLCoords(pVertices[i]).x), (int)(Box2DtoSDLCoords(pVertices[i]).y)});
    }
 
-
    SDL_DrawPolygon(vertices.data(), pVertexCount, pColor);
 }
 
@@ -155,7 +154,6 @@ void DebugDrawSDL::DrawSolidPolygon(const b2Vec2* pVertices, int32 pVertexCount,
    {
       vertices.push_back({(int)(Box2DtoSDLCoords(pVertices[i]).x), (int)(Box2DtoSDLCoords(pVertices[i]).y)});
    }
-
 
    SDL_FillPolygon(Engine::Get()->GetWindowSurface(), vertices.data(), pVertexCount, pColor);
 }

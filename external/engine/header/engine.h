@@ -18,6 +18,7 @@
 //box2D
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_fixture.h>
+#include <box2d/b2_chain_shape.h>
 
 class Engine
 {
@@ -33,6 +34,7 @@ private:
     System::Visual GraphicsSystem;
     System::Player PlayerSystem;
     System::Physics PhysicsSystem;
+    System::Load LevelLoader;
     DebugDrawSDL PhysicsDebugger;
 
     CollisionListener collisionListener;
@@ -84,12 +86,14 @@ public:
 
     //ECS
     std::size_t RegisterSolid(const b2Vec2& position, const b2Vec2& dimensions);
+    std::size_t RegisterSolid(const Box2DPlatform& platformData);
     std::size_t RegisterActor(const b2Vec2& position, const b2Vec2& dimensions, const bool& kinematic, const float& angle, const float& density, const float& frictionCoeff);
     std::size_t RegisterPlayer(const b2Vec2& position, const b2Vec2& dimensions, const std::string& texturePath);
     void DestroySolid(const std::size_t& dimensions);
     std::size_t CreateEntity();
     void DestroyEntity();
     std::size_t GetMaxEntity();
+    System::Load* GetLevelLoader();
 private:
     Engine() 
         : PhysicsSystem(System::Physics(1.0f / FixedFPS, 0.94f)) {}
