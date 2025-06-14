@@ -23,12 +23,12 @@ enum PlayerMoveX
     MOVE_RIGHT = 1
 };
 
-namespace Animation
+namespace Animation 
 {
-    const int8_t PLAYER_STILL[1] = {8};
-    const int8_t PLAYER_WALK[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-    const int8_t PLAYER_RUN[3] = {0, 6, 2};
-    const int8_t PLAYER_MIDAIR[1] = {3};
+    const int8_t PLAYER_STILL[1] = {0};
+    const int8_t PLAYER_WALK[4] = {1, 2, 3, 4};
+    const int8_t PLAYER_MIDAIR[2] = {8, 9};
+    const int8_t PLAYER_ROLL[3] = {};
 };
 
 struct Res
@@ -119,6 +119,8 @@ struct Component
         struct Solid
         {
             Material Mat;
+            b2Vec2* SDLVerteces;
+            int nVerteces;
         };
     };
 
@@ -132,6 +134,7 @@ struct Component
         SDLTimer CoyoteTime;
         unsigned int DoubleJump;
         int GroundContacts;
+        bool OnGround;
 
         int* Animations = nullptr;
     };
@@ -167,7 +170,10 @@ struct System
 	    void RenderTexture(const std::size_t& ID, const SDL_Rect& pDst, const float& angle, SDL_Point* center,
 	    SDL_RendererFlip flip);
 
-	    void SetBlending(const std::size_t& ID, const SDL_BlendMode& blend);	
+        void FillPolygon(SDL_Renderer* renderer, b2Vec2* verteces, int n, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+        int hline(SDL_Renderer * renderer, Sint16 x1, Sint16 x2, Sint16 y);
+	    
+        void SetBlending(const std::size_t& ID, const SDL_BlendMode& blend);	
 	    void SetAlpha(const std::size_t& ID, const Uint8& alpha);	
 	    void Tint(const std::size_t& ID, const SDL_Color& tint);
 	

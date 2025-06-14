@@ -16,7 +16,7 @@
 #include "ECS.h"
 #include "Collision.h"
 //box2D
-#include <box2d/b2_polygon_shape.h>
+#include <box2d/box2d.h>
 #include <box2d/b2_fixture.h>
 #include <box2d/b2_chain_shape.h>
 

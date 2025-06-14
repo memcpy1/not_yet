@@ -11,7 +11,7 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
         std::cout << "[SDL2]: SDL_Init() failed   : " << SDL_GetError() << '\n';
         return false;
     }
-    if (!(IMG_Init(IMG_INIT_PNG)))
+    if (!(IMG_Init(IMG_INIT_PNG || IMG_INIT_JPG)))
     {
         std::cout << "[SDL_image]: IMG_Init() failed  :" << IMG_GetError() << '\n';
         return false;
@@ -55,7 +55,7 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
     CurrentTick = SDL_GetPerformanceCounter();
     LastTick = 0;
 
-    Resources.fontPlayFair = TTF_OpenFont("../../res/font/PlayfairDisplayRegular.ttf", 36); 
+    Resources.fontPlayFair = TTF_OpenFont("../../assets/font/PlayfairDisplay-Regular.ttf", 36); 
 
     PhysicsDebugger.SetFlags(b2Draw::e_shapeBit);
     PhysicsSystem.GetWorld()->SetDebugDraw(&PhysicsDebugger);
@@ -64,10 +64,10 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
     collisionListener = CollisionListener();
     PhysicsSystem.World->SetContactListener(&collisionListener);
     
-    Player = RegisterPlayer(b2Vec2(0, 0), b2Vec2(0.30f, 0.50f), "");
+    Player = RegisterPlayer(b2Vec2(0, 0), b2Vec2(0.30f, 0.50f), "../../assets/image/Untitled.png");
 
     LevelLoader.SetPlayerID(Player);
-    LevelLoader.LoadStage("../../res/lvl/Level_1.bin");
+    LevelLoader.LoadStage("../../assets/level/Level_1.bin");
 
     return true;
 }
@@ -162,9 +162,8 @@ void Engine::Render()
     PhysicsDebugger.DrawCartesianAxis();
     PhysicsSystem.World->DebugDraw();
     GraphicsSystem.Render(EngineRegistry);
-    RenderText(b2Vec2(10, 10), DisplayFPS.str(), Resources.fontPlayFair, SDL_Color(255, 255, 255, 255), 0, 0, SDL_FLIP_NONE);
 
-
+    RenderText(b2Vec2(10, 10), DisplayFPS.str(), Resources.fontPlayFair, {255, 255, 255, 255}, 0, 0, SDL_FLIP_NONE);
     SDL_RenderPresent(Renderer);
 }
 
@@ -237,6 +236,16 @@ std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
         
     //Body enters the Registry
     EngineRegistry.regPhysics[Solid].body = bodySolid;
+    
+    for (int i = 0; i < platformData.nVerteces; i++)
+    {
+        vec[i] = Box2DSDL(vec[i]);
+        vec[i].y = Height - vec[i].y;
+    }
+
+    EngineRegistry.regSolid[Solid].SDLVerteces = vec; 
+    EngineRegistry.regSolid[Solid].nVerteces = platformData.nVerteces; 
+    EngineRegistry.regSolid[Solid].Mat = (Material)platformData.Mat;
     
     return Solid;
 }
@@ -311,16 +320,16 @@ std::size_t Engine::RegisterPlayer(const b2Vec2& position, const b2Vec2& dimensi
 
     FixturePlayer = bodyPlayer->CreateFixture(&fixtGroundCheck);
 
-    GraphicsSystem.LoadSpriteSheetFromFile(Player, spritePath.c_str(), 9, 46, 48, 8);
+    GraphicsSystem.LoadSpriteSheetFromFile(Player, spritePath.c_str(), 16, 40, 24, 8);
     int width, height;
     SDL_QueryTexture(GraphicsSystem.GetTexturePtr(Player), 0, 0, &width, &height);
 
-    EngineRegistry.regGraphics[Player].TextureDimensions = b2Vec2(48 * 2.2, 48 * 2.2);
+    EngineRegistry.regGraphics[Player].TextureDimensions = b2Vec2(24 * 2, 40 * 2);
     EngineRegistry.regGraphics[Player].Animated = true;
     EngineRegistry.regGraphics[Player].AnimationType = Animation::PLAYER_WALK;
     EngineRegistry.regGraphics[Player].FrameCount = 8;
     EngineRegistry.regGraphics[Player].CurrentFrame = 0;
-    EngineRegistry.regGraphics[Player].Delay = 110;
+    EngineRegistry.regGraphics[Player].Delay = 120;
     EngineRegistry.regPhysics[Player].body = bodyPlayer;
     EngineRegistry.regActor[Player].PreviousPosition = b2Vec2(position.x, position.y);
     EngineRegistry.regPlayer[Player].MoveState = PlayerMoveX::STOP;
@@ -334,10 +343,14 @@ void Engine::DestroySolid(const std::size_t& solid)
     PhysicsSystem.World->DestroyBody(EngineRegistry.regPhysics[solid].body);
     EngineRegistry.regPhysics.erase(solid);
     EngineRegistry.regUser.erase(solid);
+    delete EngineRegistry.regSolid[solid].SDLVerteces;
+    EngineRegistry.regSolid.erase(solid);
     DestroyEntity();
 }
 
 #pragma endregion ECS
+
+#pragma region SDL
 
 b2Vec2 Engine::SDLBox2D(const b2Vec2& vec2)
 {
@@ -368,3 +381,5 @@ bool Engine::IsRunning()
 {
     return Running;
 }
+
+#pragma endregion SDL

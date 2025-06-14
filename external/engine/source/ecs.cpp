@@ -2,8 +2,17 @@
 #include "Engine.h"
 
 #include <fstream>
+#include <stdio.h>
+#include <stdlib.h>
+
 
 #pragma region GRAPHICS
+
+int _gfxCompareInt(const void *a, const void *b)
+{
+	return (*(const int *) a) - (*(const int *) b);
+}
+
 void System::Visual::Update(Registry& reg)
 {
     for (std::size_t e = 1; e <= Engine::Get()->GetMaxEntity(); e++)
@@ -31,8 +40,11 @@ void System::Visual::Render(Registry& reg)
 {
     for (std::size_t e = 1; e <= Engine::Get()->GetMaxEntity(); e++)
     {
-        if(reg.regGraphics.count(e))
-        {
+		if (reg.regSolid.count(e))
+		{
+			FillPolygon(Engine::Get()->GetRenderer(), reg.regSolid[e].SDLVerteces, reg.regSolid[e].nVerteces, 255, 255, 
+			255, 255);
+		} else if (reg.regGraphics.count(e)) {
 			if (reg.regGraphics[e].Animated)
 			{								
 				SDL_RenderCopyEx(Engine::Get()->GetRenderer(), GetTexturePtr(e), &reg.regGraphics[e].Frames[reg.regGraphics[e].CurrentFrame], 
@@ -138,9 +150,14 @@ const int& ClipNumber, const int& ClipHeight, const int& ClipWidth, const int& C
 					Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].x = ClipWidth * i;
 					Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].y = 0;
 				}
-
+				
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w = ClipWidth;
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h = ClipHeight;
+
+				std::cout << "Clip " << i << " at " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].x << " | " 
+				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].y << '\n';
+				std::cout << "with " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w << " | " 
+				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h << '\n';
 			}
 
 			else if (!(i > ClipsInARow * (i - ClipsInARow + 1)))
@@ -162,12 +179,123 @@ const int& ClipNumber, const int& ClipHeight, const int& ClipWidth, const int& C
 
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w = ClipWidth;
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h = ClipHeight;
+
+				std::cout << "Clip " << i << " at " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].x << " | " 
+				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].y << '\n';
+				std::cout << "with " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w << " | " 
+				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h << '\n';
 			}
 		}
 	}
 	else 
 		printf("[LoadSpriteSheetFromFile() :   Texture does not exist!]");
 }
+
+int System::Visual::hline(SDL_Renderer* renderer, Sint16 x1, Sint16 x2, Sint16 y)
+{
+	return SDL_RenderDrawLine(renderer, x1, y, x2, y);;
+}
+
+void System::Visual::FillPolygon(SDL_Renderer* renderer, b2Vec2* verteces, int n, Uint8 r, Uint8 g, Uint8 b, Uint8 a)
+{
+	int result;
+	int i;
+	int y, xa, xb;
+	int miny, maxy;
+	int x1, y1;
+	int x2, y2;
+	int ind1, ind2;
+	int ints;
+	int *gfxPrimitivesPolyInts = NULL;
+	int *gfxPrimitivesPolyIntsNew = NULL;
+	int gfxPrimitivesPolyAllocated = 0;
+
+
+	if (verteces == NULL) 
+		std::cout << "[FillPolygon]: Verteces array is empty" << '\n';
+	if (n < 3) 
+		std::cout << "[FillPolygon]: Less than 3 verteces passed" << '\n';
+
+	
+	//Allocate temp array, only grow array 
+	if (!gfxPrimitivesPolyAllocated) {
+		gfxPrimitivesPolyInts = (int *) malloc(sizeof(int) * n);
+		gfxPrimitivesPolyAllocated = n;
+	} else {
+		if (gfxPrimitivesPolyAllocated < n) {
+			gfxPrimitivesPolyIntsNew = (int *) realloc(gfxPrimitivesPolyInts, sizeof(int) * n);
+			if (!gfxPrimitivesPolyIntsNew) {
+				if (!gfxPrimitivesPolyInts) {
+					free(gfxPrimitivesPolyInts);
+					gfxPrimitivesPolyInts = NULL;
+				}
+				gfxPrimitivesPolyAllocated = 0;
+			} else {
+				gfxPrimitivesPolyInts = gfxPrimitivesPolyIntsNew;
+				gfxPrimitivesPolyAllocated = n;
+			}
+		}
+	}
+
+	//Check temp array
+	if (gfxPrimitivesPolyInts==NULL)       
+		gfxPrimitivesPolyAllocated = 0;
+	
+	miny = verteces[0].y;
+	maxy = verteces[0].y;
+	for (i = 1; (i < n); i++) {
+		if (verteces[i].y < miny) {
+			miny = verteces[i].y;
+		} else if (verteces[i].y > maxy) {
+			maxy = verteces[i].y;
+		}
+	}
+
+	result = 0;
+	for (y = miny; (y <= maxy); y++) {
+		ints = 0;
+		for (i = 0; (i < n); i++) {
+			if (!i) {
+				ind1 = n - 1;
+				ind2 = 0;
+			} else {
+				ind1 = i - 1;
+				ind2 = i;
+			} 
+			y1 = verteces[ind1].y;
+			y2 = verteces[ind2].y;
+			if (y1 < y2) {
+				x1 = verteces[ind1].x;
+				x2 = verteces[ind2].x;
+			} else if (y1 > y2) {
+				y2 = verteces[ind1].y;
+				y1 = verteces[ind2].y;
+				x2 = verteces[ind1].x;
+				x1 = verteces[ind2].x;
+			} else {
+				continue;
+			}
+			if ( ((y >= y1) && (y < y2)) || ((y == maxy) && (y > y1) && (y <= y2)) ) {
+				gfxPrimitivesPolyInts[ints++] = ((65536 * (y - y1)) / (y2 - y1)) * (x2 - x1) + (65536 * x1);
+			} 	    
+		}
+
+		qsort(gfxPrimitivesPolyInts, ints, sizeof(int), _gfxCompareInt);
+
+		result = 0;
+	    result |= SDL_SetRenderDrawBlendMode(renderer, (a == 255) ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
+		result |= SDL_SetRenderDrawColor(renderer, r, g, b, a);	
+
+		for (i = 0; (i < ints); i += 2) {
+			xa = gfxPrimitivesPolyInts[i] + 1;
+			xa = (xa >> 16) + ((xa & 32768) >> 15);
+			xb = gfxPrimitivesPolyInts[i+1] - 1;
+			xb = (xb >> 16) + ((xb & 32768) >> 15);
+			result |= hline(renderer, xa, xb, y);
+		}
+	}
+}
+
 
 #pragma endregion GRAPHICS
 
@@ -178,31 +306,41 @@ void System::Player::Update(const std::size_t& ID, Registry& reg)
 	if (Engine::Get()->GetEventHandler()->IsKeyDown(SDL_SCANCODE_RIGHT))
     {
 		reg.regPlayer[ID].MoveState = PlayerMoveX::MOVE_RIGHT;
-		reg.regGraphics[ID].AnimationType = Animation::PLAYER_WALK;
-		reg.regGraphics[ID].FrameCount = 4;
 		reg.regGraphics[ID].Facing = 0;
     }
 	else if (Engine::Get()->GetEventHandler()->IsKeyDown(SDL_SCANCODE_LEFT))
     {
 		reg.regPlayer[ID].MoveState = PlayerMoveX::MOVE_LEFT;
-		reg.regGraphics[ID].AnimationType = Animation::PLAYER_WALK;
-		reg.regGraphics[ID].FrameCount = 4;
 		reg.regGraphics[ID].Facing = 1;
 	}
     else if (Engine::Get()->GetEventHandler()->IsKeyDown(SDL_SCANCODE_RIGHT) && Engine::Get()->GetEventHandler()->IsKeyDown(SDL_SCANCODE_LEFT))   
 	{
 		reg.regPlayer[ID].MoveState = PlayerMoveX::STOP;
-		reg.regGraphics[ID].FrameCount = 1;
-		reg.regPlayer[ID].MoveState = PlayerMoveX::MOVE_LEFT;
-		reg.regGraphics[ID].AnimationType = Animation::PLAYER_STILL;
 	}
     else
 	{
 		reg.regPlayer[ID].MoveState = PlayerMoveX::STOP;
-		reg.regGraphics[ID].FrameCount = 1;
-		reg.regGraphics[ID].AnimationType = Animation::PLAYER_STILL;
 	}
-        
+	
+	if (reg.regPlayer[ID].OnGround)
+	{
+		if (reg.regPlayer[ID].MoveState == PlayerMoveX::STOP)
+		{
+			reg.regGraphics[ID].AnimationType = Animation::PLAYER_STILL;
+			reg.regGraphics[ID].FrameCount = 1;
+		}
+		else
+		{
+			reg.regGraphics[ID].AnimationType = Animation::PLAYER_WALK;
+			reg.regGraphics[ID].FrameCount = 4;
+		}
+	}
+	else if (reg.regPhysics[ID].body->GetLinearVelocity().y > 0.1f)
+	{
+		reg.regGraphics[ID].AnimationType = Animation::PLAYER_MIDAIR;
+		reg.regGraphics[ID].FrameCount = 1;
+	}
+   
     if (Engine::Get()->GetEventHandler()->IsKeyDown(SDL_SCANCODE_C))
     {   
         if (reg.regPlayer[ID].GroundContacts < 1)

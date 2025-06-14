@@ -9,10 +9,16 @@ void CollisionListener::BeginContact(b2Contact* contact)
 
     if (UserData->GroundCheck && contact->GetFixtureA()->IsSensor())
     {
+        if (UserData->Fatal)
+        {
+            Engine::Get()->GetRegistry()->regStage[UserData->ECS_ID].Restart = 1;
+            std::cout << "Dead!" << '\n';
+        }
+        
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].GroundContacts++;
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].DoubleJump = 1;
-        FixtureUnderPlayer.insert(contact->GetFixtureB());
-    } //TODO: Implement mortality
+        Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].OnGround = true;
+    } 
 
     else if (UserData->Anchor == 1 && contact->GetFixtureA()->IsSensor())
     {
@@ -24,7 +30,13 @@ void CollisionListener::BeginContact(b2Contact* contact)
     {
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].GroundContacts++;
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].DoubleJump = 1;
-        FixtureUnderPlayer.insert(contact->GetFixtureA());
+        Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].OnGround = true;
+        
+        if (UserData->Fatal)
+        {
+            Engine::Get()->GetRegistry()->regStage[UserData->ECS_ID].Restart = 1;
+            std::cout << "Dead!" << '\n';
+        }
     }
 
     else if (UserData->Anchor == 1 && contact->GetFixtureB()->IsSensor())
@@ -40,13 +52,13 @@ void CollisionListener::EndContact(b2Contact* contact)
     if (UserData->GroundCheck && contact->GetFixtureA()->IsSensor())
     {
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].GroundContacts--;
-        FixtureUnderPlayer.erase(contact->GetFixtureB());
+        Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].OnGround = false;
     }
 
     UserData = reinterpret_cast<Component::Box2DUserData*>(contact->GetFixtureB()->GetUserData().pointer);
     if (UserData->GroundCheck && contact->GetFixtureB()->IsSensor())
     {
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].GroundContacts--;
-        FixtureUnderPlayer.erase(contact->GetFixtureA());
+        Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].OnGround = false;
     }
 }
