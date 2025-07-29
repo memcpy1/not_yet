@@ -56,6 +56,7 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
     LastTick = 0;
 
     Resources.fontPlayFair = TTF_OpenFont("../../assets/font/PlayfairDisplay-Regular.ttf", 36); 
+    GraphicsSystem.LoadFromFile(997, "../../assets/image/bg/cosmos.png");
 
     PhysicsDebugger.SetFlags(b2Draw::e_shapeBit);
     PhysicsSystem.GetWorld()->SetDebugDraw(&PhysicsDebugger);
@@ -65,9 +66,13 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
     PhysicsSystem.World->SetContactListener(&collisionListener);
     
     Player = RegisterPlayer(b2Vec2(0, 0), b2Vec2(0.30f, 0.50f), "../../assets/image/Untitled.png");
+    std::cout << Player << '\n';
 
     LevelLoader.SetPlayerID(Player);
     LevelLoader.LoadStage("../../assets/level/Level_1.bin");
+    
+
+
 
     return true;
 }
@@ -141,15 +146,10 @@ void Engine::Update()
     
     float Dt = (float)((CurrentTick - LastTick) * 10 / (float)SDL_GetPerformanceFrequency());
     
-    DisplayFPS.str(std::string());
-    DisplayFPS << FrameCount / (EngineTimer.GetTicks() / 1000.0f);
-    
     PhysicsSystem.Update(Dt);
-    
     PlayerSystem.Update(Player, EngineRegistry);
     GraphicsSystem.Update(EngineRegistry);
     LevelLoader.Update(Player, EngineRegistry);
-    
 
     FrameCount++;
 }
@@ -158,17 +158,15 @@ void Engine::Render()
 {   
     SDL_SetRenderDrawColor(Renderer, 24, 24, 24, 0xFF);
     SDL_RenderClear(Renderer);
-    PhysicsDebugger.DrawGridline(40);
-    PhysicsDebugger.DrawCartesianAxis();
-    PhysicsSystem.World->DebugDraw();
+    
+    GraphicsSystem.RenderBackground(EngineRegistry);
     GraphicsSystem.Render(EngineRegistry);
-
-    RenderText(b2Vec2(10, 10), DisplayFPS.str(), Resources.fontPlayFair, {255, 255, 255, 255}, 0, 0, SDL_FLIP_NONE);
+    
     SDL_RenderPresent(Renderer);
 }
 
 #pragma region ECS
-std::size_t Engine::RegisterSolid(const b2Vec2& position, const b2Vec2& dimensions)
+std::size_t Engine::RegisterSolid(const b2Vec2& position, const b2Vec2& dimensions) //DEPRECATED
 {
     //Box2D Initialization
     std::size_t Solid = CreateEntity();
@@ -193,6 +191,7 @@ std::size_t Engine::RegisterSolid(const b2Vec2& position, const b2Vec2& dimensio
     //Body enters the Registry
     EngineRegistry.regPhysics[Solid].body = bodySolid;
     
+    
     return Solid;
 }
 
@@ -212,7 +211,7 @@ std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
     b2Vec2* vec = new b2Vec2[platformData.nVerteces];
     for (int i = 0; i < platformData.nVerteces; i++)
         vec[i].Set(platformData.Verteces[i].x, platformData.Verteces[i].y);
-
+    
     shapeSolid.CreateLoop(vec, platformData.nVerteces);
 
     b2FixtureDef fixtSolid;
@@ -227,7 +226,37 @@ std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
     else if (platformData.Mat == Material::KILL)
     {
         EngineRegistry.regUser[Solid].Fatal = 1;
-        std::cout << "Fatal" << std::endl;
+        GraphicsSystem.LoadSpriteSheetFromFile(Solid, "../../assets/image/static.png", 6, 16, 16, 6);
+        EngineRegistry.regGraphics[Solid].TextureDimensions = b2Vec2(16, 16);
+        EngineRegistry.regGraphics[Solid].Animated = true;
+        int staticAnimation = rand() % 4 + 1;
+        switch (staticAnimation)
+        {
+            case 1:
+                EngineRegistry.regGraphics[Solid].AnimationType = Animation::STATIC;
+            break;
+            case 2:
+                EngineRegistry.regGraphics[Solid].AnimationType = Animation::STATIC_2;
+            break;
+            case 3:
+                EngineRegistry.regGraphics[Solid].AnimationType = Animation::STATIC_3;
+            break;
+            case 4:
+                EngineRegistry.regGraphics[Solid].AnimationType = Animation::STATIC_4;
+            break;
+        }
+        EngineRegistry.regGraphics[Solid].FrameCount = 6;
+        EngineRegistry.regGraphics[Solid].CurrentFrame = 0;
+        EngineRegistry.regGraphics[Solid].Delay = 100;
+        std::cout << "Position of entity [" << Solid << "] in Box2D space :" 
+        << platformData.Verteces[1].x << " | " << platformData.Verteces[1].y << std::endl;
+
+        b2Vec2 Dst = Box2DSDL(b2Vec2(platformData.Verteces[1].x, platformData.Verteces[1].y));
+        EngineRegistry.regGraphics[Solid].Dst.x = Dst.x;
+        EngineRegistry.regGraphics[Solid].Dst.y = Height - Dst.y;
+        EngineRegistry.regGraphics[Solid].Dst.w = 
+        Box2DSDLf(b2Distance(b2Vec2(platformData.Verteces[1].x, platformData.Verteces[1].y), b2Vec2(platformData.Verteces[0].x, platformData.Verteces[0].y)));
+        EngineRegistry.regGraphics[Solid].Dst.h = EngineRegistry.regGraphics[Solid].Dst.w;
     }
         
     
@@ -329,7 +358,7 @@ std::size_t Engine::RegisterPlayer(const b2Vec2& position, const b2Vec2& dimensi
     EngineRegistry.regGraphics[Player].AnimationType = Animation::PLAYER_WALK;
     EngineRegistry.regGraphics[Player].FrameCount = 8;
     EngineRegistry.regGraphics[Player].CurrentFrame = 0;
-    EngineRegistry.regGraphics[Player].Delay = 120;
+    EngineRegistry.regGraphics[Player].Delay = 110;
     EngineRegistry.regPhysics[Player].body = bodyPlayer;
     EngineRegistry.regActor[Player].PreviousPosition = b2Vec2(position.x, position.y);
     EngineRegistry.regPlayer[Player].MoveState = PlayerMoveX::STOP;

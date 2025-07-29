@@ -9,17 +9,17 @@ void CollisionListener::BeginContact(b2Contact* contact)
 
     if (UserData->GroundCheck && contact->GetFixtureA()->IsSensor())
     {
-        if (UserData->Fatal)
-        {
-            Engine::Get()->GetRegistry()->regStage[UserData->ECS_ID].Restart = 1;
-            std::cout << "Dead!" << '\n';
-        }
-        
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].GroundContacts++;
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].DoubleJump = 1;
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].OnGround = true;
-    } 
-
+    }
+    
+    if (UserData->Fatal)
+    {
+        std::cout << "Dead!" << '\n';
+        Engine::Get()->GetRegistry()->regStage[1].Restart = 1;
+    }
+    
     else if (UserData->Anchor == 1 && contact->GetFixtureA()->IsSensor())
     {
         Engine::Get()->GetLevelLoader()->FlagNext();
@@ -31,12 +31,12 @@ void CollisionListener::BeginContact(b2Contact* contact)
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].GroundContacts++;
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].DoubleJump = 1;
         Engine::Get()->GetRegistry()->regPlayer[UserData->ECS_ID].OnGround = true;
-        
-        if (UserData->Fatal)
-        {
-            Engine::Get()->GetRegistry()->regStage[UserData->ECS_ID].Restart = 1;
-            std::cout << "Dead!" << '\n';
-        }
+    }
+
+    if (UserData->Fatal)
+    {
+        std::cout << "Dead!" << '\n';
+        Engine::Get()->GetRegistry()->regStage[1].Restart = 1;
     }
 
     else if (UserData->Anchor == 1 && contact->GetFixtureB()->IsSensor())

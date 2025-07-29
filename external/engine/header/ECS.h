@@ -29,6 +29,11 @@ namespace Animation
     const int8_t PLAYER_WALK[4] = {1, 2, 3, 4};
     const int8_t PLAYER_MIDAIR[2] = {8, 9};
     const int8_t PLAYER_ROLL[3] = {};
+    const int8_t STATIC[6] = {0, 1, 2, 3, 4, 5};
+    const int8_t STATIC_2[6] = {4, 5, 1, 3, 2, 0};
+    const int8_t STATIC_3[6] = {3, 0, 2, 3, 1, 4};
+    const int8_t STATIC_4[6] = {5, 2, 4, 0, 1, 5};
+
 };
 
 struct Res
@@ -81,7 +86,7 @@ struct Component
 {
     struct Visual
     {   
-        b2Vec2 TextureDimensions;
+        b2Vec2 TextureDimensions; 
         SDL_Rect Dst;
 
         bool Animated;
@@ -188,6 +193,7 @@ struct System
         Visual() {}
     public:
         void Render(Registry& reg);
+        void RenderBackground(Registry& reg);
         void Update(Registry& pReg);
     };
     

@@ -10,29 +10,33 @@
 
 int _gfxCompareInt(const void *a, const void *b)
 {
-	return (*(const int *) a) - (*(const int *) b);
+	return (*(int*) a) - (*(int*) b);
 }
 
 void System::Visual::Update(Registry& reg)
 {
     for (std::size_t e = 1; e <= Engine::Get()->GetMaxEntity(); e++)
     {
-        if (reg.regGraphics.count(e) && reg.regPhysics.count(e))
+        if (reg.regGraphics.count(e))
         {
-			reg.regGraphics[e].Dst.x = Engine::Get()->Box2DSDL(reg.regPhysics[e].body->GetPosition()).x 
-            - (reg.regGraphics[e].TextureDimensions.x / 2);
-            reg.regGraphics[e].Dst.y = 
-            (Engine::Get()->GetWindowSurface()->h - Engine::Get()->Box2DSDL(reg.regPhysics[e].body->GetPosition()).y) - 
-            (reg.regGraphics[e].TextureDimensions.y / 2);
-            reg.regGraphics[e].Dst.w = reg.regGraphics[e].TextureDimensions.x;
-            reg.regGraphics[e].Dst.h = reg.regGraphics[e].TextureDimensions.y;
+			if (reg.regPhysics.count(e) && (reg.regPhysics[e].body->GetType() == b2_dynamicBody))
+			{
+				reg.regGraphics[e].Dst.x = Engine::Get()->Box2DSDL(reg.regPhysics[e].body->GetPosition()).x 
+            	- (reg.regGraphics[e].TextureDimensions.x / 2);
+            	reg.regGraphics[e].Dst.y = 
+            	(Engine::Get()->GetWindowSurface()->h - Engine::Get()->Box2DSDL(reg.regPhysics[e].body->GetPosition()).y) - 
+            	(reg.regGraphics[e].TextureDimensions.y / 2);
 
+            	reg.regGraphics[e].Dst.w = reg.regGraphics[e].TextureDimensions.x;
+            	reg.regGraphics[e].Dst.h = reg.regGraphics[e].TextureDimensions.y;
+			} 
+		
 			if (reg.regGraphics[e].Animated)
 			{
 				reg.regGraphics[e].CurrentFrame = 
 				reg.regGraphics[e].AnimationType[(int)((SDL_GetTicks64() / reg.regGraphics[e].Delay) % reg.regGraphics[e].FrameCount)];
 			}
-        }
+        }	
     }
 }
 
@@ -40,21 +44,26 @@ void System::Visual::Render(Registry& reg)
 {
     for (std::size_t e = 1; e <= Engine::Get()->GetMaxEntity(); e++)
     {
-		if (reg.regSolid.count(e))
-		{
-			FillPolygon(Engine::Get()->GetRenderer(), reg.regSolid[e].SDLVerteces, reg.regSolid[e].nVerteces, 255, 255, 
-			255, 255);
-		} else if (reg.regGraphics.count(e)) {
+		if (reg.regGraphics.count(e)) {
 			if (reg.regGraphics[e].Animated)
 			{								
 				SDL_RenderCopyEx(Engine::Get()->GetRenderer(), GetTexturePtr(e), &reg.regGraphics[e].Frames[reg.regGraphics[e].CurrentFrame], 
 				&reg.regGraphics[e].Dst, 0, 0, (SDL_RendererFlip)reg.regGraphics[e].Facing);																
 			}
 			else
-            	SDL_RenderCopy(Engine::Get()->GetRenderer(), GetTexturePtr(e), 0, 
-				&reg.regGraphics[e].Dst);
-        }   
+				SDL_RenderCopy(Engine::Get()->GetRenderer(), GetTexturePtr(e), 0, &reg.regGraphics[e].Dst);	
+        }
+		else if (reg.regSolid.count(e))
+		{
+			FillPolygon(Engine::Get()->GetRenderer(), reg.regSolid[e].SDLVerteces, reg.regSolid[e].nVerteces, 255, 255, 
+			255, 255);
+		} 
     }
+}
+
+void System::Visual::RenderBackground(Registry &reg)
+{
+	SDL_RenderCopy(Engine::Get()->GetRenderer(), GetTexturePtr(997), 0, 0);
 }
 
 const std::size_t& System::Visual::LoadFromFile(const std::size_t& ID, const char* path)
@@ -153,11 +162,6 @@ const int& ClipNumber, const int& ClipHeight, const int& ClipWidth, const int& C
 				
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w = ClipWidth;
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h = ClipHeight;
-
-				std::cout << "Clip " << i << " at " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].x << " | " 
-				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].y << '\n';
-				std::cout << "with " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w << " | " 
-				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h << '\n';
 			}
 
 			else if (!(i > ClipsInARow * (i - ClipsInARow + 1)))
@@ -179,11 +183,6 @@ const int& ClipNumber, const int& ClipHeight, const int& ClipWidth, const int& C
 
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w = ClipWidth;
 				Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h = ClipHeight;
-
-				std::cout << "Clip " << i << " at " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].x << " | " 
-				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].y << '\n';
-				std::cout << "with " << Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].w << " | " 
-				<< Engine::Get()->GetRegistry()->regGraphics[EntityID].Frames[i].h << '\n';
 			}
 		}
 	}
@@ -196,6 +195,7 @@ int System::Visual::hline(SDL_Renderer* renderer, Sint16 x1, Sint16 x2, Sint16 y
 	return SDL_RenderDrawLine(renderer, x1, y, x2, y);;
 }
 
+//Algorithm shamelessly stolen from Sabdul Khabir [https://github.com/sabdul-khabir/SDL3_gfx]	
 void System::Visual::FillPolygon(SDL_Renderer* renderer, b2Vec2* verteces, int n, Uint8 r, Uint8 g, Uint8 b, Uint8 a)
 {
 	int result;
@@ -388,7 +388,7 @@ void System::Load::LoadStage(const std::string& filepath)
 	if(Stage.fail())
 		std::cout << "[!] File not found!" << '\n';
     
-	unsigned int nScreens = 0; //doesnt read the second file :(
+	unsigned int nScreens = 0;
 	Stage.read((char*)&nScreens, sizeof(unsigned int));
     Screen* ImportedScreens = new Screen[nScreens];
     
@@ -420,7 +420,7 @@ void System::Load::LoadStage(const std::string& filepath)
 
 	CurrentStage.nScreens = nScreens;
 	CurrentStage.Screens = ImportedScreens;
-	std::cout << CurrentStage.nScreens << '\n';
+	std::cout << CurrentStage.Screens[0].StartPosition.x << " | " << CurrentStage.Screens[0].StartPosition.y << std::endl;
 	CurrentScreen = 0;
 	LoadScreen(CurrentStage.Screens[CurrentScreen]);
 }
@@ -432,8 +432,11 @@ void System::Load::LoadScreen(const Screen& screen)
 		PlatformIDs.push_back(Engine::Get()->RegisterSolid(screen.Platforms[i]));
 	}
 	
-	if(CurrentScreen <= 0)
+	if(screen.StartPosition.x != -8.0f && screen.StartPosition.y != 4.5f)
+	{
 		Teleport(PlayerID, Engine::Get()->GetRegistry(), screen.StartPosition);
+	}
+		
 }
 
 void System::Load::UnloadScreen(const Screen& screen)
@@ -450,9 +453,10 @@ void System::Load::Update(const std::size_t& ID, Registry& reg)
 {	
 	if (reg.regStage[ID].Restart)
 	{
-		std::cout << "dead" << '\n';
+		std::cout << "Restart" << std::endl;
+		Teleport(ID, &reg, CurrentStage.Screens[CurrentScreen].StartPosition);
+		reg.regStage[ID].Restart = 0;
 	}
-		//Teleport(ID, &reg, {StartPos.x, StartPos.y});
 
 	else if (GoToNext)
 	{
@@ -465,7 +469,6 @@ void System::Load::Update(const std::size_t& ID, Registry& reg)
 		{
 			CurrentScreen++;
 			LoadScreen(CurrentStage.Screens[CurrentScreen]);
-			StartPos = reg.regPhysics[ID].body->GetPosition();
 		}
 		else
 		{
@@ -473,7 +476,7 @@ void System::Load::Update(const std::size_t& ID, Registry& reg)
         	std::string Filename = "Level_";
         	Filename += std::to_string(Level);
 			std::cout << Filename << '\n';
-			LoadStage("../../res/lvl/" + Filename + ".bin");
+			LoadStage("../../assets/level/" + Filename + ".bin");
 		}
 
 		GoToNext = false;
