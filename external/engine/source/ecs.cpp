@@ -54,9 +54,19 @@ void System::Visual::Render(Registry& reg)
 				SDL_RenderCopy(Engine::Get()->GetRenderer(), GetTexturePtr(e), 0, &reg.regGraphics[e].Dst);	
         }
 		else if (reg.regSolid.count(e))
-		{
-			FillPolygon(Engine::Get()->GetRenderer(), reg.regSolid[e].SDLVerteces, reg.regSolid[e].nVerteces, 255, 255, 
-			255, 255);
+		{	
+			if (ColorAngleA < 90.0)
+				ColorAngleA += 0.001;
+			else
+				ColorAngleA = ColorAngleB;
+			
+			if (ColorAngleB > -90.0)
+				ColorAngleB -= 0.001;
+			else
+				ColorAngleB = ColorAngleA;
+
+			FillPolygon(Engine::Get()->GetRenderer(), reg.regSolid[e].SDLVerteces, reg.regSolid[e].nVerteces, 255 * sin(ColorAngleA), 255, 
+			255 * sin(ColorAngleB), 200);
 		} 
     }
 }
@@ -391,7 +401,9 @@ void System::Load::LoadStage(const std::string& filepath)
 	unsigned int nScreens = 0;
 	Stage.read((char*)&nScreens, sizeof(unsigned int));
     Screen* ImportedScreens = new Screen[nScreens];
+
     
+
 	for (unsigned int i = 0; i < nScreens; i++)
     {
         Stage.read((char*)&ImportedScreens[i].StartPosition.x, sizeof(float));
@@ -413,6 +425,11 @@ void System::Load::LoadStage(const std::string& filepath)
                 
             Stage.read((char*)&ImportedScreens[i].Platforms[j].Type, sizeof(unsigned int));
             Stage.read((char*)&ImportedScreens[i].Platforms[j].Mat, sizeof(unsigned int));
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].Force, sizeof(float));
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].ForceDirection.x, sizeof(float));
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].ForceDirection.y, sizeof(float));
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].TeleporterDst.x, sizeof(float));
+            Stage.read((char*)&ImportedScreens[i].Platforms[j].TeleporterDst.y, sizeof(float));
         }
     }
 
@@ -451,6 +468,10 @@ void System::Load::UnloadScreen(const Screen& screen)
 
 void System::Load::Update(const std::size_t& ID, Registry& reg)
 {	
+
+	if (reg.regPhysics[ID].body->GetPosition().y < -5.0f || reg.regPhysics[ID].body->GetPosition().x < -8.2f || reg.regPhysics[ID].body->GetPosition().x > 8.2f)
+		reg.regStage[ID].Restart = 1;
+
 	if (reg.regStage[ID].Restart)
 	{
 		std::cout << "Restart" << std::endl;
@@ -541,3 +562,9 @@ void System::Physics::Update(const float& Dt)
 
 #pragma endregion PHYSICS
 
+void System::Sound::LoadMusic()
+{
+	Track1 = Mix_LoadMUS("../../assets/audio/Track1.mp3");
+	Mix_Volume(1, (MIX_MAX_VOLUME * 50) / 100);
+	Mix_PlayMusic(Track1, 3);
+}

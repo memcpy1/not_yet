@@ -21,7 +21,7 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
         std::cout << "[SDL_TTF]: TTF_Init() failed   : " << TTF_GetError() << std::endl;
         return false;
     }
-    if (Mix_Init(MIX_INIT_OGG) && Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) == -1)
+    if (Mix_Init(MIX_INIT_FLAC) && Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) == -1)
     {
         std::cout << "[SDL_mixer]: Mix_Init() failed   : " << Mix_GetError() << std::endl;
         return false;
@@ -56,7 +56,7 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
     LastTick = 0;
 
     Resources.fontPlayFair = TTF_OpenFont("../../assets/font/PlayfairDisplay-Regular.ttf", 36); 
-    GraphicsSystem.LoadFromFile(997, "../../assets/image/bg/cosmos.png");
+    GraphicsSystem.LoadFromFile(997, "../../assets/image/bg/lights.png");
 
     PhysicsDebugger.SetFlags(b2Draw::e_shapeBit);
     PhysicsSystem.GetWorld()->SetDebugDraw(&PhysicsDebugger);
@@ -71,7 +71,7 @@ bool Engine::Initialize(std::string title, const unsigned int& width, const unsi
     LevelLoader.SetPlayerID(Player);
     LevelLoader.LoadStage("../../assets/level/Level_1.bin");
     
-
+    //SoundSystem.LoadMusic();
 
 
     return true;
@@ -158,9 +158,10 @@ void Engine::Render()
 {   
     SDL_SetRenderDrawColor(Renderer, 24, 24, 24, 0xFF);
     SDL_RenderClear(Renderer);
-    
+
     GraphicsSystem.RenderBackground(EngineRegistry);
     GraphicsSystem.Render(EngineRegistry);
+    //PhysicsSystem.GetWorld()->DebugDraw();
     
     SDL_RenderPresent(Renderer);
 }
@@ -222,6 +223,9 @@ std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
     {
         fixtSolid.isSensor = true;
         EngineRegistry.regUser[Solid].Anchor = 1;
+        GraphicsSystem.LoadSpriteSheetFromFile(Solid, "../../assets/image/anchor.png", 16, 185, 122, 8);
+        EngineRegistry.regGraphics[Solid].TextureDimensions = b2Vec2(16, 32);
+        EngineRegistry.regGraphics[Solid].Animated = true;
     }
     else if (platformData.Mat == Material::KILL)
     {
@@ -229,6 +233,7 @@ std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
         GraphicsSystem.LoadSpriteSheetFromFile(Solid, "../../assets/image/static.png", 6, 16, 16, 6);
         EngineRegistry.regGraphics[Solid].TextureDimensions = b2Vec2(16, 16);
         EngineRegistry.regGraphics[Solid].Animated = true;
+        //This might be the worst block of code in this project
         int staticAnimation = rand() % 4 + 1;
         switch (staticAnimation)
         {
@@ -245,11 +250,11 @@ std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
                 EngineRegistry.regGraphics[Solid].AnimationType = Animation::STATIC_4;
             break;
         }
+
+        //Actual yanderedev
         EngineRegistry.regGraphics[Solid].FrameCount = 6;
         EngineRegistry.regGraphics[Solid].CurrentFrame = 0;
         EngineRegistry.regGraphics[Solid].Delay = 100;
-        std::cout << "Position of entity [" << Solid << "] in Box2D space :" 
-        << platformData.Verteces[1].x << " | " << platformData.Verteces[1].y << std::endl;
 
         b2Vec2 Dst = Box2DSDL(b2Vec2(platformData.Verteces[1].x, platformData.Verteces[1].y));
         EngineRegistry.regGraphics[Solid].Dst.x = Dst.x;
@@ -258,8 +263,13 @@ std::size_t Engine::RegisterSolid(const Box2DPlatform& platformData)
         Box2DSDLf(b2Distance(b2Vec2(platformData.Verteces[1].x, platformData.Verteces[1].y), b2Vec2(platformData.Verteces[0].x, platformData.Verteces[0].y)));
         EngineRegistry.regGraphics[Solid].Dst.h = EngineRegistry.regGraphics[Solid].Dst.w;
     }
+
+
+    else if (platformData.Mat == Material::TELEPORTER)
+    {
+
+    }
         
-    
     fixtSolid.userData.pointer = reinterpret_cast<uintptr_t>(&EngineRegistry.regUser[Solid]);
     b2Fixture* SolidFixture = bodySolid->CreateFixture(&fixtSolid);
         
@@ -372,6 +382,7 @@ void Engine::DestroySolid(const std::size_t& solid)
     PhysicsSystem.World->DestroyBody(EngineRegistry.regPhysics[solid].body);
     EngineRegistry.regPhysics.erase(solid);
     EngineRegistry.regUser.erase(solid);
+    EngineRegistry.regGraphics.erase(solid);
     delete EngineRegistry.regSolid[solid].SDLVerteces;
     EngineRegistry.regSolid.erase(solid);
     DestroyEntity();

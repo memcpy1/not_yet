@@ -16,7 +16,6 @@ void CollisionListener::BeginContact(b2Contact* contact)
     
     if (UserData->Fatal)
     {
-        std::cout << "Dead!" << '\n';
         Engine::Get()->GetRegistry()->regStage[1].Restart = 1;
     }
     
@@ -35,7 +34,6 @@ void CollisionListener::BeginContact(b2Contact* contact)
 
     if (UserData->Fatal)
     {
-        std::cout << "Dead!" << '\n';
         Engine::Get()->GetRegistry()->regStage[1].Restart = 1;
     }
 

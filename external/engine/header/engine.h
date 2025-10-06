@@ -35,6 +35,7 @@ private:
     System::Player PlayerSystem;
     System::Physics PhysicsSystem;
     System::Load LevelLoader;
+    System::Sound SoundSystem;
     DebugDrawSDL PhysicsDebugger;
 
     CollisionListener collisionListener;

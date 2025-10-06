@@ -13,7 +13,9 @@
 #include "Debug.h"
 #include "Timer.h"
 //SDL
+#include <SDL.h>
 #include <SDL_ttf.h>
+#include <SDL_mixer.h>
 
 
 enum PlayerMoveX
@@ -51,8 +53,8 @@ enum Material
 {
     MAIN = 0,
     KILL = 1,
-    GLASS = 2,
-    CLOUD = 3
+    FORCER = 2,
+    TELEPORTER = 3
 };
 
 enum PlatformType
@@ -67,6 +69,9 @@ struct Box2DPlatform
     Vector2D* Verteces;
     unsigned int Type;
     unsigned int Mat;
+    float Force;
+    Vector2D ForceDirection;
+    Vector2D TeleporterDst;
 };
 
 struct Screen
@@ -148,6 +153,18 @@ struct Component
     {
         bool Restart;
     };
+
+    struct Sound
+    {
+        Mix_Chunk* Activation;
+        Mix_Chunk* Ambience;
+        Mix_Chunk* ChangeScreen;
+
+        bool IsPlayer;
+        Mix_Chunk* Footsteps;
+        Mix_Chunk* Jump;
+        Mix_Chunk* Die;
+    };
 };
 
 struct Registry
@@ -168,6 +185,8 @@ struct System
 	    std::unordered_map<std::size_t, SDL_Texture*> TextureMap;
 
         unsigned int TextureCount = 0;
+        double ColorAngleA = -90.0;
+        double ColorAngleB = 90.0;
     public:
 	    const std::size_t& LoadFromFile(const std::size_t& ID, const char* path);
 	    void Drop(const std::size_t& ID);
@@ -258,6 +277,7 @@ struct System
         std::vector<std::size_t> PlatformIDs;
         std::size_t PlayerID;
     public:
+        void LoadStageLegacy(const std::string& filepath);
         void LoadStage(const std::string& filepath);
         void LoadScreen(const Screen& screen);
         void UnloadScreen(const Screen& screen);
@@ -267,6 +287,17 @@ struct System
         void Teleport(const std::size_t& ID, Registry* reg, const Vector2D& position);
         void SetPlayerID(const std::size_t& ID);
         void Update(const std::size_t& ID, Registry& reg);
+    };
+
+    struct Sound
+    {
+    private:
+        Mix_Music* Track1;    
+        Mix_Music* Track2;
+        Mix_Music* Track3;
+        Mix_Music* Truck4;
+    public:
+        void LoadMusic();
     };
 };
 
